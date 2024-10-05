@@ -13,8 +13,3 @@
     package.json
     server.js // app server ( app input )
     README.md
-## Description of app architural file
-    # Root : is the root  of the appmication 
-    # config-service : this folder  content all  microservice redirection 
-    # rootes :  content all routes of each microservice :
-                require("./routes")(app); use to call into the server.js
