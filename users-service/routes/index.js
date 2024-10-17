@@ -1,5 +1,5 @@
 const { ValidationError } = require('sequelize');
-const {User}=require('../models');
+const {User, Books, UserBooks}=require('../models');
 const bcrypt=require('bcrypt');
 
  module.exports=(app)=>{
@@ -33,7 +33,7 @@ const bcrypt=require('bcrypt');
 
   //get All
   app.get('/users',async(req,res)=>{
-     User.findAll().then((users)=>{
+     User.findAll({include:["books"]}).then((users)=>{
           if(users.length==0){
                const message=`The Users data is empty`
                return res.status(404).json({statusCode:404,message, data:users});
@@ -51,6 +51,7 @@ const bcrypt=require('bcrypt');
      const {userId}=req.params;
 
      User.findOne({
+          include:["books"],
           where:{
                id: parseInt(userId)
           }
@@ -173,5 +174,125 @@ const bcrypt=require('bcrypt');
 
 
   /*======================== End User router===================*/ 
+
+  
+  /*======================= Start Books router ================= */
+  app.post("/users/create-books/:userId",async(req,res)=>{
+     const {userId}=req.params;
+
+     try {
+          const user= await User.findOne({
+               where:{
+                    id : parseInt(userId)
+               }
+          });
+          
+          if(!user)return res.status(404).json({statusCode:404,message:`User does not found`});
+     
+          const books={
+               name:req.body.name,
+               userId: user.id,
+               about: req.body.about,
+               pub_date: new Date(req.body.pub_date)
+          }
+
+       await Books.create(books).then(async(book)=>{
+          res.status(201).json({statusCode:201,message:`User books is added with successfully !`,data:book});
+
+       }).catch((err)=>{
+          return res.status(500).json({statusCode:500,message:`Server ERROR`, data:err})
+       })
+     
+     } catch (error) {
+          res.status(500).json({statusCode:500,message:`Server ERROR`, data:error})
+     }
+
+  })
+  //associer un livre à un ou plussieur author
+  app.post("/users/:userId/associate-books/:bookId",async(req,res)=>{
+     const {userId, bookId}=req.params;
+     
+     try {
+          const user= await User.findOne({
+               where:{
+                    id : parseInt(userId)
+               }
+          });
+          
+          if(!user)return res.status(404).json({statusCode:404,message:`User does not found`});
+          
+          const book=await Books.findOne({
+               where:{
+                    id:parseInt(bookId)
+               }
+          })
+          if(!book)return res.status(404).json({statusCode:404,message:`book does not found`})
+          const arrayUser=req.body.array;
+          if (arrayUser.length>0){
+               for (let element of arrayUser) {
+                    await UserBooks.create({
+                      userId: element,  // Associer chaque utilisateur au livre
+                      bookId: book.id
+                    });
+                  }
+              
+                  // Une seule réponse après que toutes les associations soient faites
+                  res.status(201).json({
+                    statusCode: 201,
+                    message: `Book has been correctly associated with the users`,
+                    data: arrayUser  // Retourner la liste des utilisateurs associés
+                  });
+               
+          }else{
+               res.status(404).json({statusCode:404,message:`array is empty!`,data:arrayUser})
+          }
+          
+
+     } catch (error) {
+          res.status(500).json({statusCode:500,message:`Server ERROR`, data:error})
+     }
+  })
+  //get all books for othor
+  app.get('/users/books/:bookId',async(req,res)=>{
+     const {bookId}=req.params;
+     
+     try {
+     const books=await Books.findOne({
+          include:["users"],
+          where:{
+               id:parseInt(bookId)
+          }
+     })
+
+     if(!books)return res.status(404).json({statusCode:404,message:`Get one book !`})
+
+     res.status(200).json({statusCode:200,message:`Get one book !`, data:books})
+     
+     } catch (error) {
+          res.status(500).json({statusCode:500,message:`Get one book !`,
+          data:error
+     })
+     }
+  })
+  //delete books : only admin can do  that 
+  app.delete('/users/:bookId/:userId',async(req,res)=>{
+     const {bookId,userId}=req.params;
+
+     await Books.destroy({
+          where:{
+               id:parseInt(bookId),
+               userId: parseInt(userId)
+          }
+     }).then(book=>{
+          const message=`Books deleted successfully`;
+          res.status(200).json({statusCode:200,message:message,data:book});
+     }).catch((error)=>{
+          const message=`Server ERROR`;
+          res.status(500).json({statusCode:500,message:message,data:error}) ; 
+     })
+  })
+  /*======================= End Books router ================= */
+
+
 
 }

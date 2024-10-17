@@ -11,8 +11,17 @@
     - package-lock.json
     - package.json
 
-## models :
+## models 
     - User : content user attributes ( name , tels, email, password etc.)
-    - 
-## Routes :
+    - Books : content user books attributes  (name, userId, )
+### models description 
+
+    - User :
+        - One use can have one and many books
+        - One book can writted by one and many user
+        - User Table is associate on  many Books
+
+    -  Books :
+        - 
+## Routes 
     - index.js : it content all routes of the app  ( get , post , put , delete)
